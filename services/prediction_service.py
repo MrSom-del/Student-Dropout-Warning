@@ -5,7 +5,8 @@ try:
 except ModuleNotFoundError:
     shap = None
 
-model = joblib.load("model/lightgbm_dropout_model.pkl")
+model = None
+model_load_error = None
 
 feature_columns = [
 "code_module",
@@ -29,7 +30,7 @@ feature_columns = [
 "module_presentation_length"
 ]
 
-explainer = shap.TreeExplainer(model) if shap is not None else None
+explainer = None
 
 # Share of final probability from the trained model vs. an engagement heuristic.
 # Higher engagement weight gives active_days / clicks / forum / quiz more influence
@@ -57,6 +58,36 @@ EXPLANATION_DISPLAY_WEIGHT = {
 
 def _clip01(x: float) -> float:
     return max(0.0, min(1.0, float(x)))
+
+
+def get_model():
+    global model, model_load_error
+    if model is not None:
+        return model
+    if model_load_error is not None:
+        return None
+    try:
+        model = joblib.load("model/lightgbm_dropout_model.pkl")
+        return model
+    except Exception as exc:
+        model_load_error = str(exc)
+        return None
+
+
+def get_explainer():
+    global explainer
+    if explainer is not None:
+        return explainer
+    if shap is None:
+        return None
+    loaded_model = get_model()
+    if loaded_model is None:
+        return None
+    try:
+        explainer = shap.TreeExplainer(loaded_model)
+        return explainer
+    except Exception:
+        return None
 
 
 def engagement_dropout_prior(data: dict) -> float:
@@ -91,9 +122,18 @@ def predict_student_dropout(data):
     input_df = pd.DataFrame([data])
     input_df = input_df[feature_columns]
 
-    prob_model = float(model.predict_proba(input_df)[0][1])
     prob_engagement = engagement_dropout_prior(data)
-    prob = MODEL_WEIGHT * prob_model + ENGAGEMENT_WEIGHT * prob_engagement
+    loaded_model = get_model()
+
+    if loaded_model is None:
+        # Fallback mode for deployments where model file/dependencies are unavailable.
+        prob = prob_engagement
+    else:
+        try:
+            prob_model = float(loaded_model.predict_proba(input_df)[0][1])
+            prob = MODEL_WEIGHT * prob_model + ENGAGEMENT_WEIGHT * prob_engagement
+        except Exception:
+            prob = prob_engagement
 
     if prob >= RISK_HIGH_THRESHOLD:
         risk = "HIGH"
@@ -106,14 +146,15 @@ def predict_student_dropout(data):
 
 
 def explain_prediction(data):
-    if explainer is None:
+    loaded_explainer = get_explainer()
+    if loaded_explainer is None:
         return fallback_explanation(data)
 
     try:
         input_df = pd.DataFrame([data])
         input_df = input_df[feature_columns]
 
-        shap_values = explainer.shap_values(input_df)
+        shap_values = loaded_explainer.shap_values(input_df)
 
         # Handle SHAP format differences
         if isinstance(shap_values, list):
