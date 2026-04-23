@@ -388,7 +388,7 @@ try {
 
   document.getElementById("risk").innerHTML =
   "Risk Level: " + result.risk_level +
-  " (Probability: " + result.dropout_probability.toFixed(2) + ")";
+" (Probability: " + Number(result.dropout_probability || 0).toFixed(2) + ")";
 
   setRiskBadge(result.risk_level);
 
@@ -467,7 +467,7 @@ table.innerHTML = "";
   row.innerHTML =
     "<td><a href=\"/students/" + s.id + "/profile\">" + s.id + "</a></td>" +
     "<td>" + s.risk_level + "</td>" +
-    "<td>" + s.dropout_probability.toFixed(2) + "</td>";
+    "<td>" + Number(s.dropout_probability || 0).toFixed(2) + "</td>";
 
   table.appendChild(row);
 
@@ -506,7 +506,7 @@ function renderAllStudentsPage() {
     row.innerHTML =
       "<td><a href=\"/students/" + s.id + "/profile\">" + s.id + "</a></td>" +
       "<td><span class=\"risk-pill " + (s.risk_level === "HIGH" ? "risk-pill-high" : (s.risk_level === "MEDIUM" ? "risk-pill-medium" : "risk-pill-low")) + "\">" + s.risk_level + "</span></td>" +
-      "<td>" + s.dropout_probability.toFixed(2) + "</td>";
+      "<td>" + Number(s.dropout_probability || 0).toFixed(2) + "</td>";
     table.appendChild(row);
   });
 
@@ -579,7 +579,7 @@ students.forEach(s => {
 
   row.innerHTML =
     "<td><a href=\"/students/" + s.id + "/profile\">" + s.id + "</a></td>" +
-    "<td style='color:red'>" + s.dropout_probability.toFixed(2) + "</td>";
+    "<td style='color:red'>" + Number(s.dropout_probability || 0).toFixed(2) + "</td>";
 
   table.appendChild(row);
 
