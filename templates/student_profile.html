@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<div class="container mt-5">
+
+    <a href="/" class="btn btn-link mb-3">&larr; Back to Dashboard</a>
+
+    <div class="card p-4 mb-4">
+        <h3 class="mb-3">Student Profile</h3>
+
+        <p><strong>Student ID:</strong> {{ student.id }}</p>
+        <p>
+            <strong>Risk Level:</strong>
+            <span class="risk-pill
+                {% if student.risk_level == 'HIGH' %} risk-pill-high
+                {% elif student.risk_level == 'MEDIUM' %} risk-pill-medium
+                {% else %} risk-pill-low
+                {% endif %}">
+                {{ student.risk_level }}
+            </span>
+        </p>
+        <p><strong>Probability:</strong> {{ "%.2f" | format(student.dropout_probability or 0) }}</p>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card p-4 mb-4">
+                <h5>Top Risk Factors</h5>
+                <p class="text-muted small mb-2">Model explanations; order emphasizes engagement-related signals alongside grades.</p>
+                <ul class="mb-0">
+                    {% for f in top_factors %}
+                    <li>{{ feature_labels.get(f.feature, f.feature) }} ({{ "%.2f" | format(f.impact) }})</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card p-4 mb-4">
+                <h5>Recommended Actions</h5>
+                <ul class="mb-0">
+                    {% for action in actions %}
+                    <li>{{ action }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
+

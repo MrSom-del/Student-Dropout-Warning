@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Dropout Prediction Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+</head>
+
+<body>
+
+<div class="topbar">
+  <div class="container py-3 d-flex align-items-center justify-content-between">
+    <div>
+      <div class="brand-title">Dropout Risk Dashboard</div>
+      <div class="brand-subtitle">Predict risk, understand drivers, take action.
+        {% if session.get('teacher_name') %}
+        <span class="d-block mt-1 small" style="opacity:0.92;">Signed in: {{ session.teacher_name }}{% if session.get('school_name') %} · {{ session.school_name }}{% endif %}</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end">
+      <button class="btn btn-light btn-sm" type="button" onclick="refreshAll()">Refresh all</button>
+      <form method="post" action="{{ url_for('auth.logout') }}" class="d-inline m-0">
+        <button type="submit" class="btn btn-outline-light btn-sm">Sign out</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="container mt-4 mb-5">
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card p-4 h-100">
+      <h5 class="section-title mb-3">Enter Student Data</h5>
+
+      <label class="form-label small text-muted mb-1" for="avg_score">Average Score</label>
+      <input class="form-control mb-3" id="avg_score" placeholder="e.g., 72">
+
+      <label class="form-label small text-muted mb-1" for="active_days">Active Days</label>
+      <input class="form-control mb-3" id="active_days" placeholder="e.g., 35">
+
+      <label class="form-label small text-muted mb-1" for="total_clicks">Total Learning Interactions</label>
+      <input class="form-control mb-3" id="total_clicks" placeholder="e.g., 700">
+
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary flex-grow-1" onclick="predict()">Predict Risk</button>
+        <button class="btn btn-secondary" onclick="setExample('low')">Low</button>
+        <button class="btn btn-secondary" onclick="setExample('med')">Med</button>
+        <button class="btn btn-secondary" onclick="setExample('high')">High</button>
+      </div>
+
+      <p class="text-muted small mt-3 mb-0">
+        Tip: use the Low/Med/High buttons for a fast demo. Open “More fields” for every model input.
+        Final risk <strong>blends</strong> the ML model with engagement (active days, learning interactions, resources, forum, quizzes) so activity is not drowned out by marks alone.
+      </p>
+
+      <div class="mt-3">
+        <button class="btn btn-link p-0 text-decoration-none small" type="button" data-bs-toggle="collapse" data-bs-target="#advancedStudentFields" aria-expanded="false" aria-controls="advancedStudentFields">
+          More fields (full model inputs) ▾
+        </button>
+        <div class="collapse mt-2" id="advancedStudentFields">
+          <div class="border rounded-3 p-3 bg-white bg-opacity-50">
+            <p class="text-muted small mb-3 mb-md-2">These match the columns used to train the model (Open University–style codes). Defaults are filled; change any you need.</p>
+            <div class="row g-2 small">
+              <div class="col-md-6">
+                <label class="form-label mb-0" for="code_module">Module code (numeric)</label>
+                <input class="form-control form-control-sm mb-2" id="code_module" type="number" value="1">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label mb-0" for="code_presentation">Presentation (numeric)</label>
+                <input class="form-control form-control-sm mb-2" id="code_presentation" type="number" value="1">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label mb-0" for="gender">Gender (0 / 1)</label>
+                <input class="form-control form-control-sm mb-2" id="gender" type="number" value="0" min="0">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label mb-0" for="region">Region (code)</label>
+                <input class="form-control form-control-sm mb-2" id="region" type="number" value="3" min="0">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label mb-0" for="highest_education">Highest education (code)</label>
+                <input class="form-control form-control-sm mb-2" id="highest_education" type="number" value="2" min="0">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label mb-0" for="imd_band">IMD band (code)</label>
+                <input class="form-control form-control-sm mb-2" id="imd_band" type="number" value="4" min="0">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label mb-0" for="age_band">Age band (code)</label>
+                <input class="form-control form-control-sm mb-2" id="age_band" type="number" value="1" min="0">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label mb-0" for="num_of_prev_attempts">Previous attempts</label>
+                <input class="form-control form-control-sm mb-2" id="num_of_prev_attempts" type="number" value="0" min="0">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label mb-0" for="studied_credits">Studied credits</label>
+                <input class="form-control form-control-sm mb-2" id="studied_credits" type="number" value="60" min="0">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label mb-0" for="disability">Disability (0 / 1)</label>
+                <input class="form-control form-control-sm mb-2" id="disability" type="number" value="0" min="0">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label mb-0" for="unique_resources">Unique resources accessed</label>
+                <input class="form-control form-control-sm mb-2" id="unique_resources" type="number" value="45" min="0">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label mb-0" for="num_forum">Forum posts / interactions</label>
+                <input class="form-control form-control-sm mb-2" id="num_forum" type="number" value="5" min="0">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label mb-0" for="num_quiz">Quizzes taken</label>
+                <input class="form-control form-control-sm mb-2" id="num_quiz" type="number" value="3" min="0">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label mb-0" for="num_assess_attempted">Assessments attempted</label>
+                <input class="form-control form-control-sm mb-2" id="num_assess_attempted" type="number" value="6" min="0">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label mb-0" for="total_weight">Total assessment weight</label>
+                <input class="form-control form-control-sm mb-2" id="total_weight" type="number" value="100" min="0">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label mb-0" for="module_presentation_length">Module length (days)</label>
+                <input class="form-control form-control-sm mb-2" id="module_presentation_length" type="number" value="240" min="0">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card p-4 h-100">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <h5 class="section-title mb-0">Prediction Result</h5>
+        <span id="riskBadge" class="risk-pill risk-pill-low">Waiting for input</span>
+      </div>
+
+      <p id="risk" class="mt-3 mb-3 text-muted"></p>
+
+      <div class="row g-4">
+        <div class="col-md-6">
+          <div class="mini-card p-3">
+            <div class="d-flex align-items-center justify-content-between">
+              <h6 class="section-title mb-0">Risk Distribution</h6>
+              <span class="text-muted small">All students</span>
+            </div>
+            <div class="chart-container mt-2">
+              <canvas id="riskChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="mini-card p-3 h-100">
+            <h6 class="section-title">Top Risk Factors</h6>
+            <p class="text-muted small mb-2">SHAP values from the model; ranking slightly favors activity/participation so it matches the blended risk score.</p>
+            <ul id="factors" class="factor-list mb-0"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-4 p-4">
+    <h5 class="section-title">Recent Predictions</h5>
+  
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Risk Level</th>
+          <th>Probability</th>
+        </tr>
+      </thead>
+      <tbody id="historyTable"></tbody>
+    </table>
+  
+    <button class="btn btn-secondary" onclick="loadHistory()">Refresh</button>
+  </div>
+
+  <div class="card mt-4 p-4 border-danger">
+    <h5 class="text-danger">⚠ High Risk Students</h5>
+  
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Dropout Probability</th>
+        </tr>
+      </thead>
+  
+      <tbody id="highRiskTable"></tbody>
+    </table>
+  
+    <button class="btn btn-danger" onclick="loadHighRisk()">Refresh</button>
+  </div>
+
+  <div class="card mt-4 p-4">
+    <h5 class="section-title">All Students</h5>
+    <p class="text-muted small mb-2">Full list of all students. Click an ID to open their profile.</p>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Risk Level</th>
+          <th>Probability</th>
+        </tr>
+      </thead>
+      <tbody id="allStudentsTable"></tbody>
+    </table>
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div id="allStudentsPaging" class="d-flex align-items-center gap-2"></div>
+      <button class="btn btn-outline-primary" onclick="loadAllStudents()">Refresh</button>
+    </div>
+  </div>
+
+<script>
+
+const FEATURE_LABELS = {
+code_module: "Module",
+code_presentation: "Presentation",
+gender: "Gender",
+region: "Region",
+highest_education: "Highest Education",
+imd_band: "Deprivation Index Band",
+age_band: "Age Band",
+num_of_prev_attempts: "Previous Attempts",
+studied_credits: "Studied Credits",
+disability: "Disability",
+total_clicks: "Total Learning Interactions",
+active_days: "Active Days",
+unique_resources: "Unique Resources Accessed",
+num_forum: "Forum Posts",
+num_quiz: "Quizzes Taken",
+avg_score: "Average Score",
+num_assess_attempted: "Assessments Attempted",
+total_weight: "Total Assessment Weight",
+module_presentation_length: "Module Length (Days)",
+};
+
+const DEFAULT_FEATURES = {
+  code_module: 1,
+  code_presentation: 1,
+  gender: 0,
+  region: 3,
+  highest_education: 2,
+  imd_band: 4,
+  age_band: 1,
+  num_of_prev_attempts: 0,
+  studied_credits: 60,
+  disability: 0,
+  total_clicks: 700,
+  active_days: 35,
+  unique_resources: 45,
+  num_forum: 5,
+  num_quiz: 3,
+  avg_score: 60,
+  num_assess_attempted: 6,
+  total_weight: 100,
+  module_presentation_length: 240,
+};
+
+function displayFeatureName(feature) {
+return FEATURE_LABELS[feature] || feature;
+}
+
+function readIntField(id, fallback) {
+  const el = document.getElementById(id);
+  if (!el) return fallback;
+  const v = String(el.value ?? "").trim();
+  if (v === "") return fallback;
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function readFloatField(id, fallback) {
+  const el = document.getElementById(id);
+  if (!el) return fallback;
+  const v = String(el.value ?? "").trim();
+  if (v === "") return fallback;
+  const n = parseFloat(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function collectFeaturePayload() {
+  return {
+    code_module: readIntField("code_module", DEFAULT_FEATURES.code_module),
+    code_presentation: readIntField("code_presentation", DEFAULT_FEATURES.code_presentation),
+    gender: readIntField("gender", DEFAULT_FEATURES.gender),
+    region: readIntField("region", DEFAULT_FEATURES.region),
+    highest_education: readIntField("highest_education", DEFAULT_FEATURES.highest_education),
+    imd_band: readIntField("imd_band", DEFAULT_FEATURES.imd_band),
+    age_band: readIntField("age_band", DEFAULT_FEATURES.age_band),
+    num_of_prev_attempts: readIntField("num_of_prev_attempts", DEFAULT_FEATURES.num_of_prev_attempts),
+    studied_credits: readIntField("studied_credits", DEFAULT_FEATURES.studied_credits),
+    disability: readIntField("disability", DEFAULT_FEATURES.disability),
+    total_clicks: readIntField("total_clicks", DEFAULT_FEATURES.total_clicks),
+    active_days: readIntField("active_days", DEFAULT_FEATURES.active_days),
+    unique_resources: readIntField("unique_resources", DEFAULT_FEATURES.unique_resources),
+    num_forum: readIntField("num_forum", DEFAULT_FEATURES.num_forum),
+    num_quiz: readIntField("num_quiz", DEFAULT_FEATURES.num_quiz),
+    avg_score: readFloatField("avg_score", DEFAULT_FEATURES.avg_score),
+    num_assess_attempted: readIntField("num_assess_attempted", DEFAULT_FEATURES.num_assess_attempted),
+    total_weight: readIntField("total_weight", DEFAULT_FEATURES.total_weight),
+    module_presentation_length: readIntField("module_presentation_length", DEFAULT_FEATURES.module_presentation_length),
+  };
+}
+
+function setExample(level) {
+  const resetIds = [
+    "code_module", "code_presentation", "gender", "region", "highest_education",
+    "imd_band", "age_band", "num_of_prev_attempts", "studied_credits", "disability",
+    "unique_resources", "num_forum", "num_quiz", "num_assess_attempted",
+    "total_weight", "module_presentation_length",
+  ];
+  resetIds.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = DEFAULT_FEATURES[id];
+  });
+  const scores = {
+    low: { avg_score: 85, active_days: 70, total_clicks: 1500 },
+    med: { avg_score: 60, active_days: 35, total_clicks: 700 },
+    high: { avg_score: 35, active_days: 10, total_clicks: 200 },
+  };
+  const s = scores[level];
+  if (!s) return;
+  document.getElementById("avg_score").value = s.avg_score;
+  document.getElementById("active_days").value = s.active_days;
+  document.getElementById("total_clicks").value = s.total_clicks;
+}
+
+function setRiskBadge(riskLevel) {
+  const badge = document.getElementById("riskBadge");
+  if (!badge) return;
+
+  badge.classList.remove("risk-pill-high", "risk-pill-medium", "risk-pill-low");
+
+  if (riskLevel === "HIGH") {
+    badge.classList.add("risk-pill-high");
+    badge.textContent = "HIGH RISK";
+  } else if (riskLevel === "MEDIUM") {
+    badge.classList.add("risk-pill-medium");
+    badge.textContent = "MEDIUM RISK";
+  } else if (riskLevel === "LOW") {
+    badge.classList.add("risk-pill-low");
+    badge.textContent = "LOW RISK";
+  } else {
+    badge.classList.add("risk-pill-low");
+    badge.textContent = "Waiting for input";
+  }
+}
+
+async function refreshAll() {
+  await loadAnalytics();
+  await loadHistory();
+  await loadHighRisk();
+  await loadAllStudents();
+}
+
+async function predict(){
+
+let data = collectFeaturePayload();
+
+try {
+  let response = await fetch("/explain",{
+  method:"POST",
+  headers:{
+  "Content-Type":"application/json"
+  },
+  credentials: "same-origin",
+  body:JSON.stringify(data)
+  });
+
+  if (!response.ok) {
+    throw new Error("Prediction request failed with status " + response.status);
+  }
+
+  let result = await response.json();
+
+  document.getElementById("risk").innerHTML =
+  "Risk Level: " + result.risk_level +
+  " (Probability: " + result.dropout_probability.toFixed(2) + ")";
+
+  setRiskBadge(result.risk_level);
+
+  let factors = document.getElementById("factors");
+  factors.innerHTML="";
+
+  (result.top_risk_factors || []).forEach(f=>{
+  let li=document.createElement("li");
+  li.innerText=displayFeatureName(f.feature)+" ("+f.impact.toFixed(2)+")";
+  factors.appendChild(li);
+  });
+
+  // Refresh dashboard sections so charts/tables stay in sync
+  await refreshAll();
+} catch (err) {
+  document.getElementById("risk").innerHTML = "Could not run prediction. Check server logs or installed packages.";
+  setRiskBadge(null);
+}
+
+}
+
+async function loadHighRisk(){
+
+let response = await fetch("http://127.0.0.1:5000/high-risk");
+
+let students = await response.json();
+
+let list=document.getElementById("highrisk");
+list.innerHTML="";
+
+students.forEach(s=>{
+let li=document.createElement("li");
+li.innerText="Student ID: "+s.id+" Risk: "+s.dropout_probability.toFixed(2);
+list.appendChild(li);
+});
+
+}
+
+async function loadAnalytics(){
+
+let response = await fetch("/analytics");
+let data = await response.json();
+
+let ctx = document.getElementById("riskChart");
+
+if (window.riskChartInstance) {
+  window.riskChartInstance.destroy();
+}
+
+window.riskChartInstance = new Chart(ctx, {
+type: "pie",
+data: {
+labels: ["High Risk","Medium Risk","Low Risk"],
+datasets: [{
+data: [data.high_risk, data.medium_risk, data.low_risk],
+backgroundColor: ["#ff4d4d","#ffa500","#4caf50"]
+}]
+}
+});
+}
+
+loadAnalytics();
+
+async function loadHistory(){
+
+let response = await fetch("/students");
+let students = await response.json();
+
+let table = document.getElementById("historyTable");
+table.innerHTML = "";
+
+    students.slice(-10).reverse().forEach(s => {
+
+  let row = document.createElement("tr");
+
+  row.innerHTML =
+    "<td><a href=\"/students/" + s.id + "/profile\">" + s.id + "</a></td>" +
+    "<td>" + s.risk_level + "</td>" +
+    "<td>" + s.dropout_probability.toFixed(2) + "</td>";
+
+  table.appendChild(row);
+
+});
+}
+
+loadHistory();
+
+async function loadAllStudents() {
+  let response = await fetch("/students");
+  let students = await response.json();
+  window._allStudents = students.slice().reverse();
+  window._allStudentsPageSize = 10;
+  window._allStudentsPage = 1;
+  renderAllStudentsPage();
+}
+
+loadAllStudents();
+
+function renderAllStudentsPage() {
+  const students = window._allStudents || [];
+  const pageSize = window._allStudentsPageSize || 10;
+  const page = window._allStudentsPage || 1;
+  const totalPages = Math.max(1, Math.ceil(students.length / pageSize));
+  const safePage = Math.min(Math.max(1, page), totalPages);
+  window._allStudentsPage = safePage;
+
+  const start = (safePage - 1) * pageSize;
+  const pageRows = students.slice(start, start + pageSize);
+
+  let table = document.getElementById("allStudentsTable");
+  table.innerHTML = "";
+
+  pageRows.forEach(s => {
+    let row = document.createElement("tr");
+    row.innerHTML =
+      "<td><a href=\"/students/" + s.id + "/profile\">" + s.id + "</a></td>" +
+      "<td><span class=\"risk-pill " + (s.risk_level === "HIGH" ? "risk-pill-high" : (s.risk_level === "MEDIUM" ? "risk-pill-medium" : "risk-pill-low")) + "\">" + s.risk_level + "</span></td>" +
+      "<td>" + s.dropout_probability.toFixed(2) + "</td>";
+    table.appendChild(row);
+  });
+
+  renderAllStudentsPaging(totalPages, safePage, students.length);
+}
+
+function renderAllStudentsPaging(totalPages, currentPage, totalCount) {
+  const container = document.getElementById("allStudentsPaging");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const info = document.createElement("div");
+  info.className = "text-muted small";
+  info.textContent = `Showing page ${currentPage} of ${totalPages} (${totalCount} students)`;
+  container.appendChild(info);
+
+  const nav = document.createElement("div");
+  nav.className = "btn-group btn-group-sm";
+
+  const prev = document.createElement("button");
+  prev.className = "btn btn-outline-primary";
+  prev.textContent = "Prev";
+  prev.disabled = currentPage <= 1;
+  prev.onclick = () => { window._allStudentsPage -= 1; renderAllStudentsPage(); };
+  nav.appendChild(prev);
+
+  const pagesToShow = [];
+  for (let p = 1; p <= totalPages; p++) {
+    if (p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1) pagesToShow.push(p);
+  }
+  const unique = [...new Set(pagesToShow)].sort((a, b) => a - b);
+
+  let last = 0;
+  unique.forEach(p => {
+    if (last && p - last > 1) {
+      const dots = document.createElement("button");
+      dots.className = "btn btn-outline-primary disabled";
+      dots.textContent = "…";
+      nav.appendChild(dots);
+    }
+    const b = document.createElement("button");
+    b.className = "btn " + (p === currentPage ? "btn-primary" : "btn-outline-primary");
+    b.textContent = String(p);
+    b.onclick = () => { window._allStudentsPage = p; renderAllStudentsPage(); };
+    nav.appendChild(b);
+    last = p;
+  });
+
+  const next = document.createElement("button");
+  next.className = "btn btn-outline-primary";
+  next.textContent = "Next";
+  next.disabled = currentPage >= totalPages;
+  next.onclick = () => { window._allStudentsPage += 1; renderAllStudentsPage(); };
+  nav.appendChild(next);
+
+  container.appendChild(nav);
+}
+
+async function loadHighRisk(){
+
+let response = await fetch("/high-risk");
+let students = await response.json();
+
+let table = document.getElementById("highRiskTable");
+table.innerHTML = "";
+
+students.forEach(s => {
+
+  let row = document.createElement("tr");
+
+  row.innerHTML =
+    "<td><a href=\"/students/" + s.id + "/profile\">" + s.id + "</a></td>" +
+    "<td style='color:red'>" + s.dropout_probability.toFixed(2) + "</td>";
+
+  table.appendChild(row);
+
+});
+}
+
+loadHighRisk();
+
+</script>
+
+</body>
+</html>
