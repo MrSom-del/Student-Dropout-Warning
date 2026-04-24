@@ -176,3 +176,16 @@ Final-year / coursework project — update this section with your name, institut
 ## Acknowledgements
 
 - Model training pipeline and dataset are your own / institutional; cite the **Open University Learning Analytics** (OULAD) or equivalent if your features align with that design.
+
+---
+
+## 📸 User Interface
+
+### 🔐 Login Page
+![Login](screenshots/LoginPage.png)
+
+### 📊 Dashboard
+![Dashboard](screenshots/UI.png)
+
+### 👤 Student Profile
+![Student Profile](screenshots/Details.png)
