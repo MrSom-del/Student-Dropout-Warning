@@ -15,7 +15,7 @@ A web application for **predicting student dropout risk** using a trained **Ligh
 
 ---
 
-## Tech stack
+## Technology stack
 
 | Layer | Technology |
 |--------|----------------|
