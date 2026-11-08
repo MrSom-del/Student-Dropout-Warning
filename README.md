@@ -167,12 +167,6 @@ The model expects the fields listed in **`feature_columns`** inside `services/pr
 
 ---
 
-## Author
-
-Final-year / coursework project — update this section with your name, institution, and license if you add one (e.g. MIT).
-
----
-
 ## Acknowledgements
 
 - Model training pipeline and dataset are your own / institutional; cite the **Open University Learning Analytics** (OULAD) or equivalent if your features align with that design.
